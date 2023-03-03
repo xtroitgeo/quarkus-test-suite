@@ -1,5 +1,7 @@
 package io.quarkus.ts.http.advanced.reactive;
 
+import java.util.List;
+
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -17,8 +19,6 @@ import io.quarkus.grpc.GrpcClient;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 
-import java.util.List;
-
 @Path("/grpc")
 public class GrpcResource {
 
@@ -29,7 +29,6 @@ public class GrpcResource {
     @Inject
     @GrpcClient("reflection-service")
     MutinyServerReflectionGrpc.MutinyServerReflectionStub reflection;
-
 
     @GET
     @Path("reflection/service/count")

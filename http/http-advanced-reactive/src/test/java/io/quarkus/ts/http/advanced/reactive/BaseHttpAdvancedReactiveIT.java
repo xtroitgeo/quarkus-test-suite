@@ -34,7 +34,9 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -46,10 +48,6 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import com.google.protobuf.Descriptors;
-import io.quarkus.example.GreeterGrpc;
-import io.quarkus.example.HelloWorldProto;
-import io.quarkus.example.StreamingGrpc;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
@@ -66,7 +64,11 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import com.google.protobuf.Descriptors;
 
+import io.quarkus.example.GreeterGrpc;
+import io.quarkus.example.HelloWorldProto;
+import io.quarkus.example.StreamingGrpc;
 import io.quarkus.test.bootstrap.Protocol;
 import io.quarkus.test.bootstrap.RestService;
 import io.quarkus.test.scenarios.annotations.DisabledOnQuarkusVersion;
@@ -123,66 +125,94 @@ public abstract class BaseHttpAdvancedReactiveIT {
         assertEquals(Integer.parseInt(serviceCount), 3);
     }
 
-        @Test
-        @DisplayName("GRPC reflection test - check list of services")
-        public void testReflection_serviceList() {
-            String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/list")
-                    .then().statusCode(SC_OK).extract().body().asString();
+    @Test
+    @DisplayName("GRPC reflection test - check list of services")
+    public void testReflection_serviceList() {
+        String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/list")
+                .then().statusCode(SC_OK).extract().body().asString();
 
+        String clearString = serviceCount.replaceAll("\"", "")
+                .replaceAll("[\\[|\\]]", "");
 
-            String clearString = serviceCount.replaceAll("\"", "")
-                    .replaceAll("[\\[|\\]]", "");
-            String[] stringSplit = clearString.split(",");
+        String[] stringSplit = clearString.split(",");
+        List<String> serviceList = new ArrayList<>(List.of(stringSplit));
 
-            List<String> serviceList = new ArrayList<>(List.of(stringSplit));
+        assertThat(serviceList).hasSize(3)
+                .anySatisfy(service -> assertThat(service).isEqualTo(GreeterGrpc.SERVICE_NAME))
+                .anySatisfy(service -> assertThat(service).isEqualTo(StreamingGrpc.SERVICE_NAME))
+                .anySatisfy(service -> assertThat(service).isEqualTo("grpc.health.v1.Health"));
+    }
 
-            assertThat(serviceList).hasSize(3)
-                    .anySatisfy(service -> assertThat(service).isEqualTo(GreeterGrpc.SERVICE_NAME))
-                    .anySatisfy(service -> assertThat(service).isEqualTo(StreamingGrpc.SERVICE_NAME))
-                    .anySatisfy(service -> assertThat(service).isEqualTo("grpc.health.v1.Health"));
-        }
+    @Test
+    @DisplayName("GRPC reflection test - check service methods")
+    public void testReflection_streamingServiceMethods() {
+        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+                .then().statusCode(SC_OK).extract().asString();
 
-        @Test
-        @DisplayName("GRPC reflection test - check service methods")
-        public void testReflection_streamingServiceMethods() {
-            String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
-                    .then().statusCode(SC_OK).extract().asString();
+        List<Descriptors.MethodDescriptor> serviceMethods = null;
+        var serviceList = HelloWorldProto.getDescriptor().getServices();
 
-            List<Descriptors.MethodDescriptor> serviceMethods = null;
-            var serviceList = HelloWorldProto.getDescriptor().getServices();
-
-            for (var service : serviceList) {
-                String[] serviceNameList = service.getName().split("[.]");
-                String serviceName = serviceNameList[0];
-                if (serviceName.compareTo("Streaming") == 0) {
-                    serviceMethods = HelloWorldProto.getDescriptor().getServices()
-                            .get(service.getIndex()).getMethods();
-                }
-            }
-
-            // Check if exists service "Streaming"
-            assertNotNull(serviceMethods);
-
-            for (var method : serviceMethods) {
-                String methodName = method.getName();
-                assertTrue(fileDescriptor.contains(methodName));
+        for (var service : serviceList) {
+            String[] serviceNameList = service.getName().split("[.]");
+            String serviceName = serviceNameList[0];
+            if (serviceName.compareTo("Streaming") == 0) {
+                serviceMethods = HelloWorldProto.getDescriptor().getServices()
+                        .get(service.getIndex()).getMethods();
             }
         }
 
-        @Test
-        @DisplayName("GRPC reflection test - check service messages types")
-        public void testReflection_serviceMessages() {
+        // Check if exists service "Streaming"
+        assertNotNull(serviceMethods);
 
-            String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
-                    .then().statusCode(SC_OK).extract().asString();
+        for (var method : serviceMethods) {
+            String methodName = method.getName();
+            assertTrue(fileDescriptor.contains(methodName));
+        }
+    }
 
-            var messageTypes = HelloWorldProto.getDescriptor().getMessageTypes();
+    @Test
+    @DisplayName("GRPC reflection test - check service messages types")
+    public void testReflection_serviceMessages() {
 
-            for (var message : messageTypes) {
-                String methodName = message.getName();
-                assertTrue(fileDescriptor.contains(methodName));
+        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+                .then().statusCode(SC_OK).extract().asString();
+
+        var messageTypes = HelloWorldProto.getDescriptor().getMessageTypes();
+
+        for (var message : messageTypes) {
+            String methodName = message.getName();
+            assertTrue(fileDescriptor.contains(methodName));
+        }
+    }
+
+    @Test
+    @DisplayName("GRPC reflection test - search for method of Greeter service and call it")
+    public void testReflection_callMethod() {
+        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+                .then().statusCode(SC_OK).extract().asString();
+
+        List<Descriptors.MethodDescriptor> serviceMethods = null;
+        var serviceList = HelloWorldProto.getDescriptor().getServices();
+
+        for (var service : serviceList) {
+            String[] serviceNameList = service.getName().split("[.]");
+            String serviceName = serviceNameList[0];
+            if (serviceName.compareTo("Greeter") == 0) {
+                serviceMethods = HelloWorldProto.getDescriptor().getServices()
+                        .get(service.getIndex()).getMethods();
             }
         }
+
+        // Check if exists service "Greeter"
+        assertNotNull(serviceMethods);
+
+        for (var method : serviceMethods) {
+            String methodName = method.getName();
+            assertTrue(fileDescriptor.contains(methodName));
+        }
+
+        getApp().given().when().get("/api/grpc/trinity").then().statusCode(SC_OK).body(is("Hello trinity"));
+    }
 
     @Test
     @DisplayName("Http/2 Server test")

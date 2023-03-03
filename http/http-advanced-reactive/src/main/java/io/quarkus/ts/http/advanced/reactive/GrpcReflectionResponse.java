@@ -1,10 +1,10 @@
 package io.quarkus.ts.http.advanced.reactive;
 
-import io.grpc.reflection.v1.ServerReflectionResponse;
-import io.grpc.reflection.v1.ServiceResponse;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import io.grpc.reflection.v1.ServerReflectionResponse;
+import io.grpc.reflection.v1.ServiceResponse;
 
 public final class GrpcReflectionResponse {
 
