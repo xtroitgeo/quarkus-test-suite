@@ -34,18 +34,22 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import com.google.protobuf.Descriptors;
+import io.quarkus.example.GreeterGrpc;
+import io.quarkus.example.HelloWorldProto;
+import io.quarkus.example.StreamingGrpc;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
@@ -62,16 +66,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.protobuf.Descriptors;
 
-import io.grpc.reflection.v1.FileDescriptorResponse;
-import io.grpc.reflection.v1.MutinyServerReflectionGrpc;
-import io.grpc.reflection.v1.ServerReflectionRequest;
-import io.grpc.reflection.v1.ServerReflectionResponse;
-import io.grpc.reflection.v1.ServiceResponse;
-import io.quarkus.example.GreeterGrpc;
-import io.quarkus.example.HelloWorldProto;
-import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.bootstrap.Protocol;
 import io.quarkus.test.bootstrap.RestService;
 import io.quarkus.test.scenarios.annotations.DisabledOnQuarkusVersion;
@@ -81,7 +76,6 @@ import io.quarkus.ts.http.advanced.reactive.clients.HttpVersionClientServiceAsyn
 import io.quarkus.ts.http.advanced.reactive.clients.RestClientServiceBuilder;
 import io.restassured.http.Header;
 import io.restassured.response.ValidatableResponse;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.vertx.core.http.HttpVersion;
 import io.vertx.core.json.JsonObject;
@@ -105,9 +99,6 @@ public abstract class BaseHttpAdvancedReactiveIT {
 
     protected abstract RestService getApp();
 
-    @GrpcClient("reflection-service")
-    MutinyServerReflectionGrpc.MutinyServerReflectionStub reflection;
-
     @Test
     @DisplayName("Http/1.1 Server test")
     public void httpServer() {
@@ -125,113 +116,73 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @Test
     @DisplayName("GRPC reflection test - service count")
     public void testReflection_serviceCount() {
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-                .setListServices("").build();
 
-        ServerReflectionResponse response = invoke(request);
+        String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/count")
+                .then().statusCode(SC_OK).extract().body().asString();
 
-        int numberOfServices = response.getListServicesResponse().getServiceCount();
-        assertEquals(numberOfServices, 2);
+        assertEquals(Integer.parseInt(serviceCount), 3);
     }
 
-    @Test
-    @DisplayName("GRPC reflection test - check list of services")
-    public void testReflection_serviceList() {
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
-                .setListServices("").build();
-
-        ServerReflectionResponse response = invoke(request);
-        List<ServiceResponse> list = response.getListServicesResponse().getServiceList();
-        assertThat(list).hasSize(2)
-                .anySatisfy(r -> assertThat(r.getName()).isEqualTo(GreeterGrpc.SERVICE_NAME))
-                .anySatisfy(r -> assertThat(r.getName()).isEqualTo("grpc.health.v1.Health"));
-    }
+        @Test
+        @DisplayName("GRPC reflection test - check list of services")
+        public void testReflection_serviceList() {
+            String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/list")
+                    .then().statusCode(SC_OK).extract().body().asString();
 
 
-    @Test
-    @DisplayName("GRPC reflection test - check service methods")
-    public void testReflection_serviceMethods() {
+            String clearString = serviceCount.replaceAll("\"", "")
+                    .replaceAll("[\\[|\\]]", "");
+            String[] stringSplit = clearString.split(",");
 
-        // Request to server with given proto file name
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-                .setHost("localhost")
-                .setFileByFilename("helloworld.proto")
-                .build();
+            List<String> serviceList = new ArrayList<>(List.of(stringSplit));
 
-        List<Descriptors.MethodDescriptor> serviceMethods = HelloWorldProto.getDescriptor().getServices()
-                .get(0).getMethods();
-
-        ServerReflectionResponse response = invoke(request);
-
-        for (var method : serviceMethods) {
-            String methodName = method.getName();
-            String fileDescriptor = response.getFileDescriptorResponse().toString();
-            assertTrue(fileDescriptor.contains(methodName));
+            assertThat(serviceList).hasSize(3)
+                    .anySatisfy(service -> assertThat(service).isEqualTo(GreeterGrpc.SERVICE_NAME))
+                    .anySatisfy(service -> assertThat(service).isEqualTo(StreamingGrpc.SERVICE_NAME))
+                    .anySatisfy(service -> assertThat(service).isEqualTo("grpc.health.v1.Health"));
         }
-    }
 
-    @Test
-    @DisplayName("GRPC reflection test - check service messages types")
-    public void testReflection_serviceMessages() {
+        @Test
+        @DisplayName("GRPC reflection test - check service methods")
+        public void testReflection_streamingServiceMethods() {
+            String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+                    .then().statusCode(SC_OK).extract().asString();
 
-        // Request to server with given proto file name
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-                .setHost("localhost")
-                .setFileByFilename("helloworld.proto")
-                .build();
+            List<Descriptors.MethodDescriptor> serviceMethods = null;
+            var serviceList = HelloWorldProto.getDescriptor().getServices();
 
-        var messageTypes = HelloWorldProto.getDescriptor().getMessageTypes();
+            for (var service : serviceList) {
+                String[] serviceNameList = service.getName().split("[.]");
+                String serviceName = serviceNameList[0];
+                if (serviceName.compareTo("Streaming") == 0) {
+                    serviceMethods = HelloWorldProto.getDescriptor().getServices()
+                            .get(service.getIndex()).getMethods();
+                }
+            }
 
-        ServerReflectionResponse response = invoke(request);
+            // Check if exists service "Streaming"
+            assertNotNull(serviceMethods);
 
-        for (var message : messageTypes) {
-            String methodName = message.getName();
-            String fileDescriptor = response.getFileDescriptorResponse().toString();
-            assertTrue(fileDescriptor.contains(methodName));
+            for (var method : serviceMethods) {
+                String methodName = method.getName();
+                assertTrue(fileDescriptor.contains(methodName));
+            }
         }
-    }
 
-    @Test
-    @DisplayName("GRPC reflection test - compare file description")
-    public void testReflection_getAll() {
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-                .setListServices("").build();
+        @Test
+        @DisplayName("GRPC reflection test - check service messages types")
+        public void testReflection_serviceMessages() {
 
-        ServerReflectionResponse response = invoke(request);
+            String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+                    .then().statusCode(SC_OK).extract().asString();
 
-        List<ServiceResponse> list = response.getListServicesResponse().getServiceList();
-        assertThat(list).hasSize(2)
-                .anySatisfy(r -> assertThat(r.getName()).isEqualTo(GreeterGrpc.SERVICE_NAME))
-                .anySatisfy(r -> assertThat(r.getName()).isEqualTo("grpc.health.v1.Health"));
+            var messageTypes = HelloWorldProto.getDescriptor().getMessageTypes();
 
-        String[] splittedServiceName = list.get(0).getName().split("[.]");
-        String protoFileName = splittedServiceName[0] + ".proto";
-
-        // Request to server with given proto file name
-        ServerReflectionRequest request2 = ServerReflectionRequest.newBuilder()
-                .setHost("localhost")
-                .setFileByFilename(protoFileName)
-                .build();
-
-        ServerReflectionResponse expected = ServerReflectionResponse.newBuilder()
-                .setValidHost("localhost")
-                .setOriginalRequest(request2)
-                .setFileDescriptorResponse(
-                        FileDescriptorResponse.newBuilder()
-                                .addFileDescriptorProto(
-                                        HelloWorldProto.getDescriptor().toProto().toByteString())
-                                .build())
-                .build();
-
-        ServerReflectionResponse response2 = invoke(request2);
-        assertThat(response2).isEqualTo(expected);
-    }
-
-    private ServerReflectionResponse invoke(ServerReflectionRequest request) {
-        return reflection.serverReflectionInfo(Multi.createFrom().item(request))
-                .collect().first()
-                .await().indefinitely();
-    }
+            for (var message : messageTypes) {
+                String methodName = message.getName();
+                assertTrue(fileDescriptor.contains(methodName));
+            }
+        }
 
     @Test
     @DisplayName("Http/2 Server test")
