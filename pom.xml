@@ -35,7 +35,7 @@
         <!-- TODO: https://github.com/quarkiverse/quarkus-helm/issues/114-->
         <!-- <quarkus-helm.version>0.1.1</quarkus-helm.version> -->
         <quarkiverse.config.version>2.0.0</quarkiverse.config.version>
-        <smallrye-stork.version>1.2.0</smallrye-stork.version>
+        <smallrye-stork.version>1.4.1</smallrye-stork.version>
         <assertj.version>3.24.2</assertj.version>
         <profile.id>jvm</profile.id>
         <!-- S2i configuration -->
@@ -229,8 +229,6 @@
                                 <ts.global.s2i.quarkus.native.builder.image>${ts.global.s2i.quarkus.native.builder.image}</ts.global.s2i.quarkus.native.builder.image>
                                 <!-- Services used in test suite -->
                                 <postgresql.latest.image>${postgresql.latest.image}</postgresql.latest.image>
-                                <!-- FIXME: if the same image name is used in two test classes, the second one fails -->
-                                <postgresql.also.latest.image>docker.io/library/postgres:15.1</postgresql.also.latest.image>
                                 <!-- TODO: investigate further in https://github.com/quarkus-qe/quarkus-test-suite/issues/627 -->
                                 <elastic.71.image>docker.io/bitnami/elasticsearch:7.17.6</elastic.71.image>
                                 <!--TODO change into 5.7 when this fixed https://github.com/docker-library/mysql/issues/844 -->
