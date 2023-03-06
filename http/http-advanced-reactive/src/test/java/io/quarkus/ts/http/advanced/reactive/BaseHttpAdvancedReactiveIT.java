@@ -27,7 +27,6 @@ import static org.apache.http.HttpHeaders.ACCEPT_LANGUAGE;
 import static org.apache.http.HttpHeaders.CONTENT_TYPE;
 import static org.apache.http.HttpStatus.SC_NOT_FOUND;
 import static org.apache.http.HttpStatus.SC_OK;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -137,10 +136,10 @@ public abstract class BaseHttpAdvancedReactiveIT {
         String[] stringSplit = clearString.split(",");
         List<String> serviceList = new ArrayList<>(List.of(stringSplit));
 
-        assertThat(serviceList).hasSize(3)
-                .anySatisfy(service -> assertThat(service).isEqualTo(GreeterGrpc.SERVICE_NAME))
-                .anySatisfy(service -> assertThat(service).isEqualTo(StreamingGrpc.SERVICE_NAME))
-                .anySatisfy(service -> assertThat(service).isEqualTo("grpc.health.v1.Health"));
+        assertEquals(serviceList.size(), 3);
+        assertTrue(serviceList.stream().anyMatch(GreeterGrpc.SERVICE_NAME::equals));
+        assertTrue(serviceList.stream().anyMatch(StreamingGrpc.SERVICE_NAME::equals));
+        assertTrue(serviceList.stream().anyMatch("grpc.health.v1.Health"::equals));
     }
 
     @Test
