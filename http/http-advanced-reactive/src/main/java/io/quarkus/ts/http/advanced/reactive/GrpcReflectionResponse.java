@@ -8,9 +8,16 @@ import io.grpc.reflection.v1.ServiceResponse;
 
 public final class GrpcReflectionResponse {
 
-    private final ServerReflectionResponse response;
+    private ServerReflectionResponse response;
 
-    public GrpcReflectionResponse(ServerReflectionResponse response) {
+//    public GrpcReflectionResponse(ServerReflectionResponse response) {
+//        this.response = response;
+//    }
+
+    public GrpcReflectionResponse() {
+    }
+
+    void initGrpcReflectionResponse(ServerReflectionResponse response) {
         this.response = response;
     }
 

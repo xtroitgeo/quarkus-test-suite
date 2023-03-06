@@ -114,19 +114,26 @@ public abstract class BaseHttpAdvancedReactiveIT {
     }
 
     @Test
+    @DisplayName("GRPC Server test")
+    public void testGrpcTest() {
+        getApp().given().when().get("/api/grpc/reflection/filename/helloworld")
+                .then().statusCode(SC_OK).extract().body();
+    }
+
+    @Test
     @DisplayName("GRPC reflection test - service count")
     public void testReflection_serviceCount() {
-        String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/count")
-                .then().statusCode(SC_OK).extract().body().asString();
+        GrpcReflectionResponse response = getApp().given().when().get("/api/grpc/reflection/filename/hello")
+                .then().statusCode(SC_OK).extract().response().jsonPath().getObject(".", GrpcReflectionResponse.class);
 
-        assertEquals(Integer.parseInt(serviceCount), 3);
+        assertEquals(response.getServiceCount(), 3);
     }
 
     @Test
     @DisplayName("GRPC reflection test - check list of services")
     public void testReflection_serviceList() {
-        List<String> serviceList = getApp().given().when().get("/api/grpc/reflection/service/list").
-                then().statusCode(SC_OK).extract().response().jsonPath().getList(".", String.class);
+        List<String> serviceList = getApp().given().when().get("/api/grpc/reflection/service/list").then().statusCode(SC_OK)
+                .extract().response().jsonPath().getList(".", String.class);
 
         assertEquals(serviceList.size(), 3);
         assertTrue(serviceList.stream().anyMatch(GreeterGrpc.SERVICE_NAME::equals));
@@ -197,6 +204,7 @@ public abstract class BaseHttpAdvancedReactiveIT {
         // Check if exists service "Greeter"
         assertNotNull(serviceMethods);
 
+        /// Search for exact method here ?
         for (var method : serviceMethods) {
             String methodName = method.getName();
             assertTrue(fileDescriptor.contains(methodName));

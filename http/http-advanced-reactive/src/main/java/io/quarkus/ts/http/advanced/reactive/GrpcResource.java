@@ -1,6 +1,5 @@
 package io.quarkus.ts.http.advanced.reactive;
 
-import java.util.List;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -30,36 +29,48 @@ public class GrpcResource {
     @GrpcClient("reflection-service")
     MutinyServerReflectionGrpc.MutinyServerReflectionStub reflection;
 
-    @GET
-    @Path("reflection/service/count")
-    @Produces(MediaType.TEXT_PLAIN)
-    public int serviceCount() {
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
-                .setListServices("").build();
-        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
-        return response.getServiceCount();
-    }
+//    @GET
+//    @Path("reflection/service/count")
+//    @Produces(MediaType.TEXT_PLAIN)
+//    public int serviceCount() {
+//        ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
+//                .setListServices("").build();
+//        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
+//        return response.getServiceCount();
+//    }
+//
+//    @GET
+//    @Path("reflection/service/list")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    public List<String> serviceList() {
+//        ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
+//                .setListServices("").build();
+//        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
+//        return response.getServiceList();
+//    }
 
     @GET
-    @Path("reflection/service/list")
+    @Path("reflection/filename/{filename}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<String> serviceList() {
+    public GrpcReflectionResponse serviceTest(@PathParam("filename") String filename) {
         ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
+                //                .setFileByFilename(filename)
                 .setListServices("").build();
-        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
-        return response.getServiceList();
+        GrpcReflectionResponse grpcReflectionResponse = new GrpcReflectionResponse();
+        grpcReflectionResponse.initGrpcReflectionResponse(invoke(request));
+        return grpcReflectionResponse;
     }
 
-    @GET
-    @Path("reflection/service/description")
-    @Produces(MediaType.TEXT_PLAIN)
-    public String serviceMethods() {
-        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-                .setHost("localhost").setFileByFilename("helloworld.proto").build();
-
-        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
-        return response.getFileDescriptor();
-    }
+//    @GET
+//    @Path("reflection/service/description")
+//    @Produces(MediaType.TEXT_PLAIN)
+//    public String serviceMethods() {
+//        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
+//                .setHost("localhost").setFileByFilename("helloworld.proto").build();
+//
+//        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
+//        return response.getFileDescriptor();
+//    }
 
     private ServerReflectionResponse invoke(ServerReflectionRequest request) {
         return reflection.serverReflectionInfo(Multi.createFrom().item(request))
