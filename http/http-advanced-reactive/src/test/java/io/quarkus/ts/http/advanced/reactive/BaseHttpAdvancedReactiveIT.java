@@ -41,7 +41,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Paths;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -117,7 +116,6 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @Test
     @DisplayName("GRPC reflection test - service count")
     public void testReflection_serviceCount() {
-
         String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/count")
                 .then().statusCode(SC_OK).extract().body().asString();
 
@@ -127,14 +125,8 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @Test
     @DisplayName("GRPC reflection test - check list of services")
     public void testReflection_serviceList() {
-        String serviceCount = getApp().given().when().get("/api/grpc/reflection/service/list")
-                .then().statusCode(SC_OK).extract().body().asString();
-
-        String clearString = serviceCount.replaceAll("\"", "")
-                .replaceAll("[\\[|\\]]", "");
-
-        String[] stringSplit = clearString.split(",");
-        List<String> serviceList = new ArrayList<>(List.of(stringSplit));
+        List<String> serviceList = getApp().given().when().get("/api/grpc/reflection/service/list").
+                then().statusCode(SC_OK).extract().response().jsonPath().getList(".", String.class);
 
         assertEquals(serviceList.size(), 3);
         assertTrue(serviceList.stream().anyMatch(GreeterGrpc.SERVICE_NAME::equals));
