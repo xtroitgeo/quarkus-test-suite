@@ -63,10 +63,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.protobuf.Descriptors;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.quarkus.example.GreeterGrpc;
 import io.quarkus.example.HelloWorldProto;
 import io.quarkus.example.StreamingGrpc;
+import io.grpc.reflection.v1.FileDescriptorResponse;
 import io.quarkus.test.bootstrap.Protocol;
 import io.quarkus.test.bootstrap.RestService;
 import io.quarkus.test.scenarios.annotations.DisabledOnQuarkusVersion;
@@ -117,7 +119,8 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @DisplayName("GRPC reflection test - service count")
     public void testReflection_serviceCount() {
         GrpcReflectionResponse response = getApp().given().when().get("/api/grpc/reflection/service/info")
-                .then().statusCode(SC_OK).extract().response().jsonPath().getObject(".", GrpcReflectionResponse.class);
+                .then().statusCode(SC_OK).extract().response()
+                .jsonPath().getObject(".", GrpcReflectionResponse.class);
 
         assertEquals(response.getServiceCount(), 3);
     }
@@ -126,7 +129,8 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @DisplayName("GRPC reflection test - check list of services")
     public void testReflection_serviceList() {
         GrpcReflectionResponse response = getApp().given().when().get("/api/grpc/reflection/service/info")
-                .then().statusCode(SC_OK).extract().response().jsonPath().getObject(".", GrpcReflectionResponse.class);
+                .then().statusCode(SC_OK).extract().response()
+                .jsonPath().getObject(".", GrpcReflectionResponse.class);
 
         List<String> serviceList = response.getServiceList();
 
@@ -138,19 +142,21 @@ public abstract class BaseHttpAdvancedReactiveIT {
 
     @Test
     @DisplayName("GRPC reflection test - check service methods")
-    public void testReflection_streamingServiceMethods() {
-        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
-                .then().statusCode(SC_OK).extract().asString();
+    public void testReflection_streamingServiceMethods() throws InvalidProtocolBufferException {
+        byte[] responseByteArray = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
+                .then().statusCode(SC_OK).extract().body().asByteArray();
+
+        String fileDescriptor = FileDescriptorResponse.parseFrom(responseByteArray).toString();
 
         List<Descriptors.MethodDescriptor> serviceMethods = null;
         var serviceList = HelloWorldProto.getDescriptor().getServices();
 
         for (var service : serviceList) {
-            String[] serviceNameList = service.getName().split("[.]");
-            String serviceName = serviceNameList[0];
+            String serviceName = service.getName();
             if (serviceName.compareTo("Streaming") == 0) {
                 serviceMethods = HelloWorldProto.getDescriptor().getServices()
                         .get(service.getIndex()).getMethods();
+                break;
             }
         }
 
@@ -165,46 +171,46 @@ public abstract class BaseHttpAdvancedReactiveIT {
 
     @Test
     @DisplayName("GRPC reflection test - check service messages types")
-    public void testReflection_serviceMessages() {
-        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
-                .then().statusCode(SC_OK).extract().asString();
+    public void testReflection_serviceMessages() throws InvalidProtocolBufferException {
+        byte[] responseByteArray = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
+                .then().statusCode(SC_OK).extract().body().asByteArray();
+        String fileDescriptor = FileDescriptorResponse.parseFrom(responseByteArray).toString();
 
         var messageTypes = HelloWorldProto.getDescriptor().getMessageTypes();
 
-        for (var message : messageTypes) {
-            String methodName = message.getName();
+        for (var messageType : messageTypes) {
+            String methodName = messageType.getName();
             assertTrue(fileDescriptor.contains(methodName));
         }
     }
 
     @Test
-    @DisplayName("GRPC reflection test - search for method of Greeter service and call it")
-    public void testReflection_callMethod() {
-        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
-                .then().statusCode(SC_OK).extract().asString();
+    @DisplayName("GRPC reflection test - check method SayHello of Greeter service exists and than call it")
+    public void testReflection_callMethod() throws InvalidProtocolBufferException {
+        byte[] responseByteArray = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
+                .then().statusCode(SC_OK).extract().body().asByteArray();
+
+        String fileDescriptor = FileDescriptorResponse.parseFrom(responseByteArray).toString();
 
         List<Descriptors.MethodDescriptor> serviceMethods = null;
         var serviceList = HelloWorldProto.getDescriptor().getServices();
 
         for (var service : serviceList) {
-            String[] serviceNameList = service.getName().split("[.]");
-            String serviceName = serviceNameList[0];
+            String serviceName = service.getName();
             if (serviceName.compareTo("Greeter") == 0) {
                 serviceMethods = HelloWorldProto.getDescriptor().getServices()
                         .get(service.getIndex()).getMethods();
+                break;
             }
         }
 
         // Check if exists service "Greeter"
         assertNotNull(serviceMethods);
 
-        /// Search for exact method here ?
-        for (var method : serviceMethods) {
-            String methodName = method.getName();
-            assertTrue(fileDescriptor.contains(methodName));
-        }
+        /// Check if exists sayHello method
+        assertTrue(fileDescriptor.contains("SayHello"));
 
-        getApp().given().when().get("/api/grpc/trinity").then().statusCode(SC_OK).body(is("Hello trinity"));
+        getApp().given().when().get("/api/grpc/tester").then().statusCode(SC_OK).body(is("Hello tester"));
     }
 
     @Test
