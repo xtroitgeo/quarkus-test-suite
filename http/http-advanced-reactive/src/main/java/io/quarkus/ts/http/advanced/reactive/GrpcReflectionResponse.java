@@ -1,41 +1,22 @@
 package io.quarkus.ts.http.advanced.reactive;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import io.grpc.reflection.v1.ServerReflectionResponse;
-import io.grpc.reflection.v1.ServiceResponse;
-
 public final class GrpcReflectionResponse {
+    private final int serviceCount;
+    private final List<String> serviceList;
 
-    private ServerReflectionResponse response;
-
-//    public GrpcReflectionResponse(ServerReflectionResponse response) {
-//        this.response = response;
-//    }
-
-    public GrpcReflectionResponse() {
-    }
-
-    void initGrpcReflectionResponse(ServerReflectionResponse response) {
-        this.response = response;
+    public GrpcReflectionResponse(int serviceCount, List<String> serviceList) {
+        this.serviceCount = serviceCount;
+        this.serviceList = serviceList;
     }
 
     public List<String> getServiceList() {
-        List<ServiceResponse> serviceList = response.getListServicesResponse().getServiceList();
-        List<String> serviceNames = new ArrayList<>();
-        for (var service : serviceList) {
-            serviceNames.add(service.getName());
-        }
-        return serviceNames;
+        return this.serviceList;
     }
 
     public int getServiceCount() {
-        return response.getListServicesResponse().getServiceCount();
-    }
-
-    public String getFileDescriptor() {
-        return response.getFileDescriptorResponse().toString();
+        return serviceCount;
     }
 
 }

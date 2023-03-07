@@ -114,16 +114,9 @@ public abstract class BaseHttpAdvancedReactiveIT {
     }
 
     @Test
-    @DisplayName("GRPC Server test")
-    public void testGrpcTest() {
-        getApp().given().when().get("/api/grpc/reflection/filename/helloworld")
-                .then().statusCode(SC_OK).extract().body();
-    }
-
-    @Test
     @DisplayName("GRPC reflection test - service count")
     public void testReflection_serviceCount() {
-        GrpcReflectionResponse response = getApp().given().when().get("/api/grpc/reflection/filename/hello")
+        GrpcReflectionResponse response = getApp().given().when().get("/api/grpc/reflection/service/info")
                 .then().statusCode(SC_OK).extract().response().jsonPath().getObject(".", GrpcReflectionResponse.class);
 
         assertEquals(response.getServiceCount(), 3);
@@ -132,8 +125,10 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @Test
     @DisplayName("GRPC reflection test - check list of services")
     public void testReflection_serviceList() {
-        List<String> serviceList = getApp().given().when().get("/api/grpc/reflection/service/list").then().statusCode(SC_OK)
-                .extract().response().jsonPath().getList(".", String.class);
+        GrpcReflectionResponse response = getApp().given().when().get("/api/grpc/reflection/service/info")
+                .then().statusCode(SC_OK).extract().response().jsonPath().getObject(".", GrpcReflectionResponse.class);
+
+        List<String> serviceList = response.getServiceList();
 
         assertEquals(serviceList.size(), 3);
         assertTrue(serviceList.stream().anyMatch(GreeterGrpc.SERVICE_NAME::equals));
@@ -144,7 +139,7 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @Test
     @DisplayName("GRPC reflection test - check service methods")
     public void testReflection_streamingServiceMethods() {
-        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
                 .then().statusCode(SC_OK).extract().asString();
 
         List<Descriptors.MethodDescriptor> serviceMethods = null;
@@ -171,8 +166,7 @@ public abstract class BaseHttpAdvancedReactiveIT {
     @Test
     @DisplayName("GRPC reflection test - check service messages types")
     public void testReflection_serviceMessages() {
-
-        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/service/description")
+        String fileDescriptor = getApp().given().when().get("/api/grpc/reflection/descriptor/helloworld")
                 .then().statusCode(SC_OK).extract().asString();
 
         var messageTypes = HelloWorldProto.getDescriptor().getMessageTypes();

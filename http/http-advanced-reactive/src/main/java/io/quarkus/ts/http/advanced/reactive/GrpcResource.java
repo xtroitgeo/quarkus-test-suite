@@ -1,5 +1,7 @@
 package io.quarkus.ts.http.advanced.reactive;
 
+import java.util.ArrayList;
+import java.util.List;
 
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -11,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import io.grpc.reflection.v1.MutinyServerReflectionGrpc;
 import io.grpc.reflection.v1.ServerReflectionRequest;
 import io.grpc.reflection.v1.ServerReflectionResponse;
+import io.grpc.reflection.v1.ServiceResponse;
 import io.quarkus.example.Greeter;
 import io.quarkus.example.HelloReply;
 import io.quarkus.example.HelloRequest;
@@ -29,53 +32,44 @@ public class GrpcResource {
     @GrpcClient("reflection-service")
     MutinyServerReflectionGrpc.MutinyServerReflectionStub reflection;
 
-//    @GET
-//    @Path("reflection/service/count")
-//    @Produces(MediaType.TEXT_PLAIN)
-//    public int serviceCount() {
-//        ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
-//                .setListServices("").build();
-//        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
-//        return response.getServiceCount();
-//    }
-//
-//    @GET
-//    @Path("reflection/service/list")
-//    @Produces(MediaType.APPLICATION_JSON)
-//    public List<String> serviceList() {
-//        ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
-//                .setListServices("").build();
-//        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
-//        return response.getServiceList();
-//    }
-
     @GET
-    @Path("reflection/filename/{filename}")
+    @Path("reflection/service/info")
     @Produces(MediaType.APPLICATION_JSON)
-    public GrpcReflectionResponse serviceTest(@PathParam("filename") String filename) {
+    public GrpcReflectionResponse reflectionServiceInfo() {
         ServerReflectionRequest request = ServerReflectionRequest.newBuilder().setHost("localhost")
-                //                .setFileByFilename(filename)
                 .setListServices("").build();
-        GrpcReflectionResponse grpcReflectionResponse = new GrpcReflectionResponse();
-        grpcReflectionResponse.initGrpcReflectionResponse(invoke(request));
-        return grpcReflectionResponse;
+        ServerReflectionResponse response = invoke(request);
+
+        int reflectionServiceCount = response.getListServicesResponse().getServiceCount();
+        List<String> reflectionServiceList = getReflectionServiceList(response);
+
+        return new GrpcReflectionResponse(reflectionServiceCount, reflectionServiceList);
     }
 
-//    @GET
-//    @Path("reflection/service/description")
-//    @Produces(MediaType.TEXT_PLAIN)
-//    public String serviceMethods() {
-//        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-//                .setHost("localhost").setFileByFilename("helloworld.proto").build();
-//
-//        GrpcReflectionResponse response = new GrpcReflectionResponse(invoke(request));
-//        return response.getFileDescriptor();
-//    }
+    @GET
+    @Path("reflection/descriptor/{protoFilename}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public byte[] reflectionFileDescriptor(@PathParam("protoFilename") String protoFilename) {
+        ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
+                .setHost("localhost").setFileByFilename(protoFilename.concat(".proto")).build();
+
+        ServerReflectionResponse response = invoke(request);
+        return response.getFileDescriptorResponse().toByteArray();
+    }
 
     private ServerReflectionResponse invoke(ServerReflectionRequest request) {
         return reflection.serverReflectionInfo(Multi.createFrom().item(request))
                 .collect().first()
                 .await().indefinitely();
+    }
+
+    private List<String> getReflectionServiceList(ServerReflectionResponse response) {
+        List<ServiceResponse> serviceList = response.getListServicesResponse().getServiceList();
+        List<String> serviceNames = new ArrayList<>();
+        for (var service : serviceList) {
+            serviceNames.add(service.getName());
+        }
+        return serviceNames;
     }
 
     @GET
