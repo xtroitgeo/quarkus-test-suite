@@ -51,7 +51,7 @@ public class GrpcResource {
     @Produces(MediaType.APPLICATION_JSON)
     public byte[] reflectionFileDescriptor(@PathParam("protoFilename") String protoFilename) {
         ServerReflectionRequest request = ServerReflectionRequest.newBuilder()
-                .setHost("localhost").setFileByFilename(protoFilename.concat(".proto")).build();
+                .setHost("localhost").setFileByFilename(protoFilename + ".proto").build();
 
         ServerReflectionResponse response = invoke(request);
         return response.getFileDescriptorResponse().toByteArray();

@@ -65,10 +65,10 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import io.grpc.reflection.v1.FileDescriptorResponse;
 import io.quarkus.example.GreeterGrpc;
 import io.quarkus.example.HelloWorldProto;
 import io.quarkus.example.StreamingGrpc;
-import io.grpc.reflection.v1.FileDescriptorResponse;
 import io.quarkus.test.bootstrap.Protocol;
 import io.quarkus.test.bootstrap.RestService;
 import io.quarkus.test.scenarios.annotations.DisabledOnQuarkusVersion;
