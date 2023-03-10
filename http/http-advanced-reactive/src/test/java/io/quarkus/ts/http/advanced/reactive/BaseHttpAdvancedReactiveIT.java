@@ -207,9 +207,10 @@ public abstract class BaseHttpAdvancedReactiveIT {
         // Check if exists service "Greeter"
         assertNotNull(serviceMethods);
 
-        /// Check if exists sayHello method
+        // Check if exists sayHello method
         assertTrue(fileDescriptor.contains("SayHello"));
 
+        // Call sayHello method and compare context
         getApp().given().when().get("/api/grpc/tester").then().statusCode(SC_OK).body(is("Hello tester"));
     }
 
