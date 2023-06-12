@@ -21,8 +21,10 @@ public class OpenShiftSpringWebQuteReactiveIT extends AbstractSpringWebQuteReact
             .withProperty("quarkus.datasource.username", database.getUser())
             .withProperty("quarkus.datasource.password", database.getPassword())
             .withProperty("quarkus.datasource.reactive.url",
-                    () -> "vertx-reactive:" + database.getHost().replace("http", "mysql") + ":" + database.getPort() + "/"
-                            + database.getDatabase());
+                    () -> "vertx-reactive:" + database.getURI()
+                            .withScheme("mysql")
+                            .withPath("/" + database.getDatabase())
+                            .toString());
 
     @Override
     public RestService getApp() {

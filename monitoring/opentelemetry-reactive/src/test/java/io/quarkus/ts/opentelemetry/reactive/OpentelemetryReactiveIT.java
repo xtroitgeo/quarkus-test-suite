@@ -10,6 +10,7 @@ import static org.hamcrest.text.IsEqualIgnoringCase.equalToIgnoringCase;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+import io.quarkus.test.bootstrap.Protocol;
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matcher;
 import org.junit.jupiter.api.Assertions;
