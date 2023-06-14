@@ -33,12 +33,10 @@ public class OracleDatabaseIT extends AbstractDatabaseHibernateReactiveIT {
         return app;
     }
 
-    // TODO: Remove after https://github.com/quarkus-qe/quarkus-test-framework/issues/503 is resolved
     private static class ProvisionalOracleService extends OracleService {
         @Override
         public String getReactiveUrl() {
-            return getHost().replace("http://", getJdbcName() + ":thin:@") + ":" + getPort() + "/"
-                    + getDatabase();
+            return getURI().withScheme(getJdbcName() + ":thin:@").withPath("/" + getDatabase()).toString();
         }
     }
 }
