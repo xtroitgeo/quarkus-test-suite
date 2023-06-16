@@ -30,8 +30,7 @@
         <jsoup.version>1.16.1</jsoup.version>
         <!-- TODO: uncomment Camel Quarkus BOM when Camel Quarkus 3 is released -->
         <!-- <camel-quarkus-bom.version>2.16.0</camel-quarkus-bom.version> -->
-        <!-- TODO: https://github.com/quarkiverse/quarkus-helm/issues/114-->
-        <!-- <quarkus-helm.version>0.1.1</quarkus-helm.version> -->
+        <quarkus-helm.version>1.0.8</quarkus-helm.version>
         <quarkiverse.config.version>2.0.1</quarkiverse.config.version>
         <quarkiverse.pact.version>1.0.1.Final</quarkiverse.pact.version>
         <smallrye-stork.version>2.2.0</smallrye-stork.version>
@@ -102,12 +101,11 @@
                 <artifactId>jsoup</artifactId>
                 <version>${jsoup.version}</version>
             </dependency>
-            <!-- TODO: https://github.com/quarkiverse/quarkus-helm/issues/114-->
-            <!--            <dependency>-->
-            <!--                <groupId>io.quarkiverse.helm</groupId>-->
-            <!--                <artifactId>quarkus-helm</artifactId>-->
-            <!--                <version>${quarkus-helm.version}</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>io.quarkiverse.helm</groupId>
+                <artifactId>quarkus-helm</artifactId>
+                <version>${quarkus-helm.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.assertj</groupId>
                 <artifactId>assertj-core</artifactId>
@@ -405,8 +403,7 @@
                 <module>qute/multimodule</module>
                 <module>qute/synchronous</module>
                 <module>qute/reactive</module>
-                <!-- TODO: https://github.com/quarkiverse/quarkus-helm/issues/114-->
-                <!-- <module>helm/helm-minimum</module> -->
+                <module>helm/helm-minimum</module>
                 <module>funqy/knative-events</module>
             </modules>
         </profile>
