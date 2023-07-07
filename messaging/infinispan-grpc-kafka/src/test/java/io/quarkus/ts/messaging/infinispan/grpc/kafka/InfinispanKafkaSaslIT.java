@@ -5,7 +5,6 @@ import static io.restassured.RestAssured.given;
 import static org.awaitility.Awaitility.await;
 
 import org.hamcrest.core.StringContains;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.bootstrap.InfinispanService;
@@ -19,8 +18,6 @@ import io.quarkus.test.services.containers.model.KafkaProtocol;
 import io.quarkus.test.services.containers.model.KafkaVendor;
 
 @QuarkusScenario
-// TODO https://github.com/quarkusio/quarkus/issues/25136
-@Tag("fips-incompatible")
 public class InfinispanKafkaSaslIT {
     /**
      * We can't rename this file to use the default SSL settings part of KafkaService.
@@ -30,7 +27,7 @@ public class InfinispanKafkaSaslIT {
     @Container(image = "${infinispan.image}", expectedLog = "${infinispan.expected-log}", port = 11222, command = "-c /infinispan-config.xml")
     static final InfinispanService infinispan = new InfinispanService()
             .withConfigFile("infinispan-config.xml")
-            .withSecretFiles("keystore.jks");
+            .withSecretFiles("keystore.p12");
 
     @KafkaContainer(vendor = KafkaVendor.STRIMZI, protocol = KafkaProtocol.SASL)
     static final KafkaService kafkasasl = new KafkaService();
@@ -40,9 +37,9 @@ public class InfinispanKafkaSaslIT {
             .withProperty("quarkus.infinispan-client.hosts", infinispan::getInfinispanServerAddress)
             .withProperty("quarkus.infinispan-client.username", infinispan.getUsername())
             .withProperty("quarkus.infinispan-client.password", infinispan.getPassword())
-            .withProperty("quarkus.infinispan-client.trust-store", "secret::/truststore.jks")
+            .withProperty("quarkus.infinispan-client.trust-store", "secret::/truststore.p12")
             .withProperty("quarkus.infinispan-client.trust-store-password", "password")
-            .withProperty("quarkus.infinispan-client.trust-store-type", "jks")
+            .withProperty("quarkus.infinispan-client.trust-store-type", "PKCS12")
             .withProperty("kafka-streams.state.dir", "target")
             .withProperty("kafka-client-sasl.bootstrap.servers", kafkasasl::getBootstrapUrl);
 

@@ -10,7 +10,6 @@ import java.time.Duration;
 
 import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import io.quarkus.test.bootstrap.InfinispanService;
@@ -25,8 +24,6 @@ import io.quarkus.ts.messaging.infinispan.grpc.kafka.books.Book;
 import io.restassured.http.ContentType;
 
 @QuarkusScenario
-// TODO https://github.com/quarkusio/quarkus/issues/25136
-@Tag("fips-incompatible")
 public class InfinispanKafkaIT {
 
     private static final String BOOK_TITLE = "testBook";
@@ -35,7 +32,7 @@ public class InfinispanKafkaIT {
     @Container(image = "${infinispan.image}", expectedLog = "${infinispan.expected-log}", port = 11222, command = "-c /infinispan-config.xml")
     static final InfinispanService infinispan = new InfinispanService()
             .withConfigFile("infinispan-config.xml")
-            .withSecretFiles("keystore.jks");
+            .withSecretFiles("keystore.p12");
 
     @KafkaContainer(vendor = KafkaVendor.CONFLUENT)
     static final KafkaService kafka = new KafkaService();
@@ -45,9 +42,9 @@ public class InfinispanKafkaIT {
             .withProperty("quarkus.infinispan-client.hosts", infinispan::getInfinispanServerAddress)
             .withProperty("quarkus.infinispan-client.username", infinispan.getUsername())
             .withProperty("quarkus.infinispan-client.password", infinispan.getPassword())
-            .withProperty("quarkus.infinispan-client.trust-store", "secret::/truststore.jks")
+            .withProperty("quarkus.infinispan-client.trust-store", "secret::/truststore.p12")
             .withProperty("quarkus.infinispan-client.trust-store-password", "password")
-            .withProperty("quarkus.infinispan-client.trust-store-type", "jks")
+            .withProperty("quarkus.infinispan-client.trust-store-type", "PKCS12")
             .withProperty("kafka.bootstrap.servers", kafka::getBootstrapUrl);
 
     @Test
