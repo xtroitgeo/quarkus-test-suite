@@ -28,8 +28,10 @@ public class IncorrectKsFileTypeOidcMtlsIT extends BaseOidcMtlsIT {
     @KeycloakContainer(command = KC_DEV_MODE_JKS_CMD, port = KEYCLOAK_PORT)
     static KeycloakService keycloak = newKeycloakInstance(REALM_FILE_PATH, REALM_DEFAULT, "realms")
             .withRedHatFipsDisabled()
-            .withProperty("HTTPS_KEYSTORE", "resource_with_destination::/etc/|server-keystore." + KEYSTORE_FILE_EXTENSION)
-            .withProperty("HTTPS_TRUSTSTORE", "resource_with_destination::/etc/|server-truststore." + KEYSTORE_FILE_EXTENSION);
+            .withProperty("HTTPS_KEYSTORE",
+                    "resource_with_destination::/etc/|server-keystore." + KEYSTORE_FILE_EXTENSION)
+            .withProperty("HTTPS_TRUSTSTORE",
+                    "resource_with_destination::/etc/|server-truststore." + KEYSTORE_FILE_EXTENSION);
 
     @QuarkusApplication
     static RestService app = createRestService("incorrect-type", KEYSTORE_FILE_EXTENSION, keycloak::getRealmUrl);

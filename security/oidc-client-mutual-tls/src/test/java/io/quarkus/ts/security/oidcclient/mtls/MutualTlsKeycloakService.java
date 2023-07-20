@@ -30,6 +30,16 @@ public class MutualTlsKeycloakService extends KeycloakService {
             "--https-trust-store-file=/etc/server-truststore.p12 " +
             "--https-trust-store-password=password";
 
+    // command used by Keycloak 18+ container in order to launch BCFKS secured Keycloak
+    public static final String KC_DEV_MODE_PKCS12_FIPS_CMD = "start-dev " +
+            "--import-realm --hostname-strict=false --hostname-strict-https=false --features=token-exchange " +
+            "--https-client-auth=required " +
+            "--https-key-store-file=/etc/server-keystore.pkcs12 " +
+            "--https-trust-store-file=/etc/server-truststore.pkcs12 " +
+            "--https-key-store-type=PKCS12 --https-trust-store-type=PKCS12 " +
+            "--https-key-store-password=password " +
+            "--https-trust-store-password=password";
+
     public static MutualTlsKeycloakService newKeycloakInstance(String realmFile, String realmName, String realmBasePath) {
         return new MutualTlsKeycloakService(realmFile, realmName, realmBasePath);
     }

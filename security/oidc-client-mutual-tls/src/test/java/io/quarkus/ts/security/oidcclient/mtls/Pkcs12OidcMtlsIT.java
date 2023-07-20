@@ -23,7 +23,8 @@ public class Pkcs12OidcMtlsIT extends KeycloakMtlsAuthN {
     @KeycloakContainer(command = KC_DEV_MODE_P12_CMD, port = KEYCLOAK_PORT)
     static KeycloakService keycloak = newKeycloakInstance(REALM_FILE_PATH, REALM_DEFAULT, "realms")
             .withRedHatFipsDisabled()
-            .withProperty("HTTPS_KEYSTORE", "resource_with_destination::/etc/|server-keystore." + P12_KEYSTORE_FILE_EXTENSION)
+            .withProperty("HTTPS_KEYSTORE",
+                    "resource_with_destination::/etc/|server-keystore." + P12_KEYSTORE_FILE_EXTENSION)
             .withProperty("HTTPS_TRUSTSTORE",
                     "resource_with_destination::/etc/|server-truststore." + P12_KEYSTORE_FILE_EXTENSION);
 

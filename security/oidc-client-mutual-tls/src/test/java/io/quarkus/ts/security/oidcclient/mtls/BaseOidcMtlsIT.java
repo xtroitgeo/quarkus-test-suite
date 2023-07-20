@@ -32,6 +32,9 @@ public abstract class BaseOidcMtlsIT {
     protected static final String P12_KEYSTORE_FILE_TYPE = "PKCS12";
     protected static final String P12_KEYSTORE_FILE_EXTENSION = "p12";
 
+    protected static final String PKCS12_FIPS_KEYSTORE_FILE_TYPE = "PKCS12";
+    protected static final String PKCS12_FIPS_KEYSTORE_FILE_EXTENSION = "pkcs12";
+
     protected static RestService createRestService(String fileType, String keystoreFileExtension, Supplier<String> realmUrl) {
         return new RestService()
                 .withProperty("quarkus.oidc.tls.verification", "required")
