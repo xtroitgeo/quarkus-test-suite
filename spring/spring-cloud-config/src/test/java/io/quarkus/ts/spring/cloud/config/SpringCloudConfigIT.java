@@ -18,7 +18,7 @@ public class SpringCloudConfigIT {
 
     @Container(image = "${spring.cloud.server.image}", port = 8888, expectedLog = "Started ConfigServer")
     static RestService spring = new RestService()
-            .withProperty("SPRING_PROPERTY_FILE", "resource::/config/application-SpringCloudConfigIT.properties")
+            .withProperty("SPRING_PROPERTY_FILE", "resource::/config/application.properties")
             .withProperty("SPRING_PROFILES_ACTIVE", "native");
 
     @QuarkusApplication
