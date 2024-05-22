@@ -40,6 +40,7 @@ public class QuarkusCliUtils {
 
     public static String getCurrentStreamVersion() {
         String rawVersion = Version.getVersion();
+        System.out.println(rawVersion);
         if (QUARKUS_UPSTREAM_VERSION.equalsIgnoreCase(rawVersion)) {
             return QUARKUS_UPSTREAM_VERSION;
         }

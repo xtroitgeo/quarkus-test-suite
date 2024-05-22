@@ -18,11 +18,14 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import jakarta.inject.Inject;
@@ -343,6 +346,66 @@ public class QuarkusCliCreateJvmApplicationIT {
         assertEquals(Duration.ofSeconds(2), app.getConfiguration().getAsDuration("startup.timeout", null));
         assertThrows(ConditionTimeoutException.class, app::start, "That application shouldn't start!");
         app.logs().assertContains("Type of the artifact is POM, skipping dev goal");
+    }
+
+    @Test
+    public void testUpdate() throws IOException {
+
+        String RESTEASY_REACTIVE = "quarkus-resteasy-reactive";
+
+        //        QuarkusCliRestService app = create32StreamAppAndUpdate(RESTEASY_REACTIVE, SPRING_WEB_EXTENSION);
+        //        assertInstalledExtensions(app, "quarkus-rest", SPRING_WEB_EXTENSION);
+        //
+        //        app.start();
+        //        untilAsserted(() -> app.given().get("/greeting").then().statusCode(HttpStatus.SC_OK).and().body(is("Hello Spring")));
+        //
+        //        Path pom = getFileFromApplication(app, ROOT_FOLDER, "pom.xml").toPath();
+        //        List<String> content = Files.readAllLines(pom);
+        //
+        //        boolean found = content.stream()
+        //                .anyMatch(line -> line.trim().endsWith("<artifactId>" + RESTEASY_REACTIVE_JACKSON_EXTENSION + "</artifactId>"));
+        //
+        //        // Assert that the string was found
+        //        assertTrue(found, "The file should contain " + RESTEASY_REACTIVE_JACKSON_EXTENSION + " extension");
+
+        QuarkusCliRestService app = cliClient.createApplication("app", defaults()
+                .withStream("3.2")
+                .withExtensions(RESTEASY_REACTIVE, SPRING_WEB_EXTENSION));
+
+        Path testPath = Path.of(app.getServiceFolder().toString(), "/src/test/java/org/acme/");
+        Path testClass1 = Paths.get("src/test/testforupdate/MyTest.java");
+        Path testClass2 = Paths.get("src/test/testforupdate/TestIT.java");
+        Files.copy(testClass1, testPath.resolve(testClass1.getFileName()));
+        Files.copy(testClass2, testPath.resolve(testClass2.getFileName()));
+        app.buildOnJvm();
+    }
+
+    private QuarkusCliRestService create32StreamAppAndUpdate(String... extensions) throws IOException {
+        QuarkusCliRestService app = cliClient.createApplication("app", defaults()
+                .withStream("3.2")
+                .withExtensions(extensions));
+
+        //        // Make sure version and groupId from the TS run is used
+        //        app.withProperty(QuarkusProperties.PLATFORM_GROUP_ID.getPropertyKey(), QuarkusProperties.PLATFORM_GROUP_ID.get());
+        //        app.withProperty(QuarkusProperties.PLATFORM_VERSION.getPropertyKey(), "3.2.12.Final");
+
+        app.update();
+
+        // Change Quarkus version to updated one
+        Path pom = getFileFromApplication(app, ROOT_FOLDER, "pom.xml").toPath();
+        List<String> content = Files.readAllLines(pom);
+        for (String line : content) {
+            String regex = "<quarkus.platform.version>(.*?)</quarkus.platform.version>";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(line);
+            if (matcher.find()) {
+                String newVersion = matcher.group(1);
+                app.withProperty(QuarkusProperties.PLATFORM_VERSION.getPropertyKey(), newVersion);
+                break;
+            }
+        }
+
+        return app;
     }
 
     private void assertBuildError(Result result, String expectedError) {
