@@ -1,5 +1,6 @@
 package io.quarkus.ts.sb.postgresql;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -35,7 +36,8 @@ public class OpenShiftPostgreSqlSbIT {
             .onPreStart(s -> createPostgresCluster());
 
     @AfterAll
-    public static void tearDown() {
+    public static void tearDown() throws IOException, InterruptedException {
+        new Command("oc", "get", "env", "-n", ocClient.project()).runAndWait();
         deleteCustomResourceDefinition("pg-cluster.yml");
     }
 

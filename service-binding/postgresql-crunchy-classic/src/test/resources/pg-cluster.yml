@@ -14,7 +14,7 @@ spec:
           - "ReadWriteOnce"
         resources:
           requests:
-            storage: 150Mi
+            storage: 100Mi
   backups:
     pgbackrest:
       # Image is used only in this configuration, no need in tracking the image in Maven properties
@@ -27,4 +27,4 @@ spec:
                 - "ReadWriteOnce"
               resources:
                 requests:
-                  storage: 150Mi
+                  storage: 100Mi

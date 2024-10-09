@@ -1,5 +1,6 @@
 package io.quarkus.ts.sb.reactive;
 
+import java.io.IOException;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -38,7 +39,8 @@ public class OpenShiftPostgreSqlReactiveSbIT {
             .onPreStart(s -> createPostgresCluster());
 
     @AfterAll
-    public static void tearDown() {
+    public static void tearDown() throws IOException, InterruptedException {
+        new Command("oc", "get", "env", "-n", ocClient.project()).runAndWait();
         deleteCustomResourceDefinition();
     }
 
