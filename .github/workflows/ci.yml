@@ -88,7 +88,7 @@ jobs:
             echo "Running modules: ${MODULES_ARG}"
             echo "JVM_MODULES_MAVEN_PARAM=[\" -pl ${MODULES_ARG} -Dall-modules\"]" >> $GITHUB_OUTPUT
             echo "NATIVE_MODULES_MAVEN_PARAM=[\" -pl ${MODULES_ARG} -Dall-modules\"]" >> $GITHUB_OUTPUT
-            echo "RUN_ALL_MODULES=true" >> $GITHUB_OUTPUT
+            echo "RUN_ALL_MODULES=false" >> $GITHUB_OUTPUT
           else
             echo "JVM_MODULES_MAVEN_PARAM=[' -P root-modules,cache-modules,spring-modules,http-modules,test-tooling-modules,messaging-modules,monitoring-modules', ' -P security-modules,sql-db-modules,websockets-modules,nosql-db-modules']" >> $GITHUB_OUTPUT
             echo "NATIVE_MODULES_MAVEN_PARAM=[' -P root-modules,websockets-modules,test-tooling-modules,nosql-db-modules', ' -P http-modules,cache-modules', ' -P security-modules,spring-modules',
@@ -128,7 +128,7 @@ jobs:
     name: PR - Linux - JVM build - Latest Version
     runs-on: ubuntu-latest
     timeout-minutes: 240
-    needs: [linux-validate-format, prepare-jvm-native-latest-modules-mvn-param]
+    needs: [prepare-jvm-native-latest-modules-mvn-param]
     env:
       RUN_ALL_MODULES: ${{ needs.prepare-jvm-native-latest-modules-mvn-param.outputs.RUN_ALL_MODULES }}
     strategy:
@@ -167,11 +167,17 @@ jobs:
           REGULAR_MODULES="${{ matrix.module-mvn-args }}"
           LONG_RUNNING_MODULES="${{ matrix.module-long-run-mvn-args }}"
           
+          echo "RUN_ALL_MODULES=${RUN_ALL_MODULES}"
+          echo "REGULAR_MODULES=${REGULAR_MODULES}"
+          echo "LONG_RUNNING_MODULES=${LONG_RUNNING_MODULES}"
+          
           if ${RUN_ALL_MODULES}; then
             SPECIAL_MODULES=${REGULAR_MODULES}
           else
             SPECIAL_MODULES=${LONG_RUNNING_MODULES}
           fi
+          
+          echo "SPECIAL_MODULES=${SPECIAL_MODULES}"
           
           # Run only changed selected modules 
           if ! ${RUN_ALL_MODULES}; then
@@ -214,7 +220,7 @@ jobs:
   linux-build-native-latest:
     name: PR - Linux - Native build - Latest Version
     runs-on: ubuntu-latest
-    needs: [linux-validate-format, prepare-jvm-native-latest-modules-mvn-param]
+    needs: [prepare-jvm-native-latest-modules-mvn-param]
     env:
       RUN_ALL_MODULES: ${{ needs.prepare-jvm-native-latest-modules-mvn-param.outputs.RUN_ALL_MODULES }}
     strategy:
@@ -300,7 +306,7 @@ jobs:
   windows-build-jvm-latest:
     name: PR - Windows - JVM build - Latest Version
     runs-on: windows-latest
-    needs: [linux-validate-format, prepare-jvm-native-latest-modules-mvn-param]
+    needs: [prepare-jvm-native-latest-modules-mvn-param]
     env:
       RUN_ALL_MODULES: ${{ needs.prepare-jvm-native-latest-modules-mvn-param.outputs.RUN_ALL_MODULES }}
     strategy:
@@ -336,7 +342,7 @@ jobs:
             echo "Running modules: ${REGULAR_MODULES}"
             mvn -B --no-transfer-progress -fae \
             -s .github/quarkus-snapshots-mvn-settings.xml clean verify \
-            -Dall-modules -pl ${REGULAR_MODULES} -am -DexcludedGroups=long-running
+            ${REGULAR_MODULES} -am -DexcludedGroups=long-running
           fi
           
           # Separate run for long running tests or run all modules
@@ -344,7 +350,7 @@ jobs:
             echo "Running modules: ${SPECIAL_MODULES}"
             mvn -B --no-transfer-progress -fae \ 
             -s .github/quarkus-snapshots-mvn-settings.xml verify \
-            -Dall-modules -pl ${SPECIAL_MODULES} -am
+            ${SPECIAL_MODULES} -am
           fi
       - name: Detect flaky tests
         id: flaky-test-detector
