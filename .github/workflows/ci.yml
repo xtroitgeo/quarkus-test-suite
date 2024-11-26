@@ -42,8 +42,9 @@ jobs:
                 CHANGED=""
                 break
             fi
+          
             if [[ $CHANGED_FILE =~ ("$module") ]] ; then
-                # Check if changed file contains @Tag("long-running")
+                # Check if module contains tests with @Tag("long-running")
                 LONG_RUNNING_TAG_FOUND=false
                 for file in $(find "$module" -type f -name "*.java"); do
                   if grep -q '@Tag("long-running")' "$file"; then
@@ -87,12 +88,14 @@ jobs:
             echo "Running modules: ${MODULES_ARG}"
             echo "JVM_MODULES_MAVEN_PARAM=[\" -pl ${MODULES_ARG} -Dall-modules\"]" >> $GITHUB_OUTPUT
             echo "NATIVE_MODULES_MAVEN_PARAM=[\" -pl ${MODULES_ARG} -Dall-modules\"]" >> $GITHUB_OUTPUT
+            echo "RUN_ALL_MODULES=true" >> $GITHUB_OUTPUT
           else
             echo "JVM_MODULES_MAVEN_PARAM=[' -P root-modules,cache-modules,spring-modules,http-modules,test-tooling-modules,messaging-modules,monitoring-modules', ' -P security-modules,sql-db-modules,websockets-modules,nosql-db-modules']" >> $GITHUB_OUTPUT
             echo "NATIVE_MODULES_MAVEN_PARAM=[' -P root-modules,websockets-modules,test-tooling-modules,nosql-db-modules', ' -P http-modules,cache-modules', ' -P security-modules,spring-modules',
               ' -P sql-db-modules -pl env-info,sql-db/hibernate,sql-db/sql-app,sql-db/sql-app-compatibility,sql-db/multiple-pus,sql-db/panache-flyway,sql-db/hibernate-reactive',
               ' -P sql-db-modules -pl env-info,sql-db/reactive-rest-data-panache,sql-db/vertx-sql,sql-db/reactive-vanilla,sql-db/hibernate-fulltext-search,sql-db/narayana-transactions',
               ' -P messaging-modules,monitoring-modules']" | tr -d -s '\n' ' ' >> $GITHUB_OUTPUT
+            echo "RUN_ALL_MODULES=true" >> $GITHUB_OUTPUT
           fi
           
           if [[ -n ${MODULES_LONG_RUNS_ARG} ]]; then
@@ -102,6 +105,7 @@ jobs:
       JVM_MODULES_MAVEN_PARAM: ${{ steps.prepare-modules-mvn-param.outputs.JVM_MODULES_MAVEN_PARAM }}
       NATIVE_MODULES_MAVEN_PARAM: ${{ steps.prepare-modules-mvn-param.outputs.NATIVE_MODULES_MAVEN_PARAM }}
       MODULES_LONG_RUNS_MAVEN_PARAM: ${{ steps.prepare-modules-mvn-param.outputs.MODULES_LONG_RUNS_MAVEN_PARAM }}
+      RUN_ALL_MODULES: ${{ steps.prepare-modules-mvn-param.outputs.RUN_ALL_MODULES }}
   linux-validate-format:
     name: Linux - Validate format
     runs-on: ubuntu-latest
@@ -125,6 +129,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 240
     needs: [linux-validate-format, prepare-jvm-native-latest-modules-mvn-param]
+    env:
+      RUN_ALL_MODULES: ${{ needs.prepare-jvm-native-latest-modules-mvn-param.outputs.RUN_ALL_MODULES }}
     strategy:
       matrix:
         java: [ 17 ]
@@ -158,10 +164,27 @@ jobs:
           ./quarkus-dev-cli version
       - name: Build with Maven
         run: |
-          mvn -fae -V -B --no-transfer-progress clean verify -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" ${{ matrix.module-mvn-args }} -am -DexcludedGroups=long-running
-          # Long running tests
-          if [[ -n "${{ matrix.module-long-run-mvn-args }}" ]]; then
-            mvn -fae -V -B --no-transfer-progress verify -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" ${{ matrix.module-long-run-mvn-args }} -am
+          REGULAR_MODULES="${{ matrix.module-mvn-args }}"
+          LONG_RUNNING_MODULES="${{ matrix.module-long-run-mvn-args }}"
+          
+          if ${RUN_ALL_MODULES}; then
+            SPECIAL_MODULES=${REGULAR_MODULES}
+          else
+            SPECIAL_MODULES=${LONG_RUNNING_MODULES}
+          fi
+          
+          # Run only changed selected modules 
+          if ! ${RUN_ALL_MODULES}; then
+            mvn -fae -V -B --no-transfer-progress clean verify \
+              -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" \
+              ${REGULAR_MODULES} -am -DexcludedGroups=long-running
+          fi
+
+          # Separate run for long running tests or run all modules
+          if [[ -n ${LONG_RUNNING_MODULES} || ${RUN_ALL_MODULES} ]]; then
+            mvn -fae -V -B --no-transfer-progress verify \
+              -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli}" \
+              ${SPECIAL_MODULES} -am
           fi
       - name: Detect flaky tests
         id: flaky-test-detector
@@ -192,6 +215,8 @@ jobs:
     name: PR - Linux - Native build - Latest Version
     runs-on: ubuntu-latest
     needs: [linux-validate-format, prepare-jvm-native-latest-modules-mvn-param]
+    env:
+      RUN_ALL_MODULES: ${{ needs.prepare-jvm-native-latest-modules-mvn-param.outputs.RUN_ALL_MODULES }}
     strategy:
       matrix:
         java: [ 17 ]
@@ -225,16 +250,28 @@ jobs:
           ./quarkus-dev-cli version
       - name: Build with Maven
         run: |
+          REGULAR_MODULES="${{ matrix.module-mvn-args }}"
+          LONG_RUNNING_MODULES="${{ matrix.module-long-run-mvn-args }}"
+          
+          if ${RUN_ALL_MODULES}; then
+            SPECIAL_MODULES=${REGULAR_MODULES}
+          else
+            SPECIAL_MODULES=${LONG_RUNNING_MODULES}
+          fi
+          
+          # Run only changed selected modules 
+          if ! ${RUN_ALL_MODULES}; then
             mvn -fae -V -B --no-transfer-progress \
-                        -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" \
-                        ${{ matrix.module-mvn-args }} clean verify -Dnative -am -DexcludedGroups=long-running
-            
-            # Long running tests
-            if [[ -n "${{ matrix.module-long-run-mvn-args }}" ]]; then
-              mvn -fae -V -B --no-transfer-progress \
-                        -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" \
-                        ${{ matrix.module-long-run-mvn-args }} verify -Dnative -am
-            fi
+              -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" \
+              ${REGULAR_MODULES} clean verify -Dnative -am -DexcludedGroups=long-running
+          fi
+          
+          # Separate run for long running tests or run all modules
+          if [[ -n ${LONG_RUNNING_MODULES} || ${RUN_ALL_MODULES} ]]; then
+            mvn -fae -V -B --no-transfer-progress \
+              -Dinclude.quarkus-cli-tests -Dts.quarkus.cli.cmd="${PWD}/quarkus-dev-cli" \
+              ${SPECIAL_MODULES} verify -Dnative -am
+          fi
       - name: Detect flaky tests
         id: flaky-test-detector
         if: ${{ hashFiles('**/flaky-run-report.json') != '' }}
@@ -263,13 +300,14 @@ jobs:
   windows-build-jvm-latest:
     name: PR - Windows - JVM build - Latest Version
     runs-on: windows-latest
-    needs: [detect-test-suite-modules, linux-validate-format]
+    needs: [linux-validate-format, prepare-jvm-native-latest-modules-mvn-param]
     env:
-      MODULES_ARG: ${{ needs.detect-test-suite-modules.outputs.MODULES_ARG }}
-      MODULES_LONG_RUNS_ARG: ${{ needs.detect-test-suite-modules.outputs.MODULES_LONG_RUNS_ARG }}
+      RUN_ALL_MODULES: ${{ needs.prepare-jvm-native-latest-modules-mvn-param.outputs.RUN_ALL_MODULES }}
     strategy:
       matrix:
         java: [ 17 ]
+        module-mvn-args: ${{ fromJSON(needs.prepare-jvm-native-latest-modules-mvn-param.outputs.NATIVE_MODULES_MAVEN_PARAM) }}
+        module-long-run-mvn-args: ${{ fromJSON(needs.prepare-jvm-native-latest-modules-mvn-param.outputs.MODULES_LONG_RUNS_MAVEN_PARAM || '[""]') }}
     outputs:
       has-flaky-tests: ${{steps.flaky-test-detector.outputs.has-flaky-tests}}
     steps:
@@ -284,15 +322,29 @@ jobs:
       - name: Build in JVM mode
         shell: bash
         run: |
-          if [[ -n ${MODULES_ARG} ]]; then
-            echo "Running modules: ${MODULES_ARG}"
-          mvn -B --no-transfer-progress -fae -s .github/quarkus-snapshots-mvn-settings.xml clean verify -Dall-modules -pl ${MODULES_ARG} -am -DexcludedGroups=long-running
+          REGULAR_MODULES="${{ matrix.module-mvn-args }}"
+          LONG_RUNNING_MODULES="${{ matrix.module-long-run-mvn-args }}"
+          
+          if ${RUN_ALL_MODULES}; then
+            SPECIAL_MODULES=${REGULAR_MODULES}
+          else
+            SPECIAL_MODULES=${LONG_RUNNING_MODULES}
           fi
           
-          # Long running tests
-          if [[ -n ${MODULES_LONG_RUNS_ARG} ]]; then
-            echo "Running modules: ${MODULES_LONG_RUNS_ARG}"
-            mvn -B --no-transfer-progress -fae -s .github/quarkus-snapshots-mvn-settings.xml verify -Dall-modules -pl ${MODULES_LONG_RUNS_ARG} -am
+          # Run only changed selected modules 
+          if ! ${RUN_ALL_MODULES}; then
+            echo "Running modules: ${REGULAR_MODULES}"
+            mvn -B --no-transfer-progress -fae \
+            -s .github/quarkus-snapshots-mvn-settings.xml clean verify \
+            -Dall-modules -pl ${REGULAR_MODULES} -am -DexcludedGroups=long-running
+          fi
+          
+          # Separate run for long running tests or run all modules
+          if [[ -n ${LONG_RUNNING_MODULES} || ${RUN_ALL_MODULES} ]]; then
+            echo "Running modules: ${SPECIAL_MODULES}"
+            mvn -B --no-transfer-progress -fae \ 
+            -s .github/quarkus-snapshots-mvn-settings.xml verify \
+            -Dall-modules -pl ${SPECIAL_MODULES} -am
           fi
       - name: Detect flaky tests
         id: flaky-test-detector
