@@ -61,6 +61,7 @@ jobs:
 
           MODULES_ARG="${CHANGED// /,}"
           echo "MODULES_ARG=$MODULES_ARG" >> $GITHUB_OUTPUT
+          echo "EXCLUDE_LONG_RUNS=$EXCLUDE_LONG_RUNS"
           echo "EXCLUDE_LONG_RUNS=$EXCLUDE_LONG_RUNS" >> $GITHUB_OUTPUT
     outputs:
       MODULES_ARG: ${{ steps.detect-changes.outputs.MODULES_ARG }}
