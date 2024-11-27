@@ -36,8 +36,8 @@ jobs:
 
           for module in $MODULES
           do
-            # Check if files contains main pom.xml as we want to run all modules here.
-            if [[ $CHANGED_FILE =~ [^\/]pom\.xml|^pom\.xml ]]; then
+            # Check if files contains main pom.xml or changes github workflows as we want to run all modules here.
+            if [[ $CHANGED_FILE =~ [^\/]pom\.xml|^pom\.xml|^\.github/ ]]; then
                 CHANGED=""
                 EXCLUDE_LONG_RUNS=""
                 break
