@@ -79,7 +79,7 @@ public class InfinispanCacheIT {
     public void shouldGetTheSameValueForSamePrefixesWhenGettingValueFromPath(String path) {
         // We call the service endpoint
         String value = getValueFromPathUsingPrefix(path, PREFIX_ONE);
-        System.out.println("Tuesday");
+
         // At this point, the cache is populated and we should get the same value from the cache
         assertEquals(value, getValueFromPathUsingPrefix(path, PREFIX_ONE),
                 "Value was different which means cache is not working");
