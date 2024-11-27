@@ -72,6 +72,7 @@ jobs:
     needs: detect-test-suite-modules
     env:
       MODULES_ARG: ${{ needs.detect-test-suite-modules.outputs.MODULES_ARG }}
+      EXCLUDE_LONG_RUNS: ${{ needs.detect-test-suite-modules.outputs.EXCLUDE_LONG_RUNS }}
     steps:
       - id: prepare-modules-mvn-param
         run: |
